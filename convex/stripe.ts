@@ -12,6 +12,7 @@ import { currencyValidator, intervalValidator, PLANS } from "@cvx/schema";
 import { api, internal } from "@cvx/_generated/api";
 import { SITE_URL, STRIPE_SECRET_KEY } from "@cvx/env";
 import { asyncMap } from "convex-helpers";
+import { getSubscriptionPeriodStart, getSubscriptionPeriodEnd } from './stripeSubscriptionPeriod';
 
 /**
  * TODO: Uncomment to require Stripe keys.
@@ -24,7 +25,7 @@ if (!STRIPE_SECRET_KEY) {
 */
 
 export const stripe = new Stripe(STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-06-20",
+  apiVersion: "2026-09-30.endive",
   typescript: true,
 });
 
@@ -258,8 +259,8 @@ export const PREAUTH_createFreeStripeSubscription = internalAction({
       stripeSubscriptionId: stripeSubscription.id,
       status: stripeSubscription.status,
       interval: "year",
-      currentPeriodStart: stripeSubscription.current_period_start,
-      currentPeriodEnd: stripeSubscription.current_period_end,
+      currentPeriodStart: (getSubscriptionPeriodStart(stripeSubscription, (items) => items[0])),
+      currentPeriodEnd: (getSubscriptionPeriodEnd(stripeSubscription, (items) => items[0])),
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
     });
 
@@ -333,7 +334,7 @@ export const createSubscriptionCheckout = action({
       customer: user.customerId,
       line_items: [{ price: price?.stripeId, quantity: 1 }],
       mode: "subscription",
-      payment_method_types: ["card"],
+      allowed_payment_method_types: ["card"],
       success_url: `${SITE_URL}/dashboard/checkout`,
       cancel_url: `${SITE_URL}/dashboard/settings/billing`,
     });
